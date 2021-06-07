@@ -1,38 +1,76 @@
-"""Convert all *.gif and *.mp4 files within this folder and its subfolders to *.webm.
-
-3rd-party Requirements
-----------
-FFmpeg (https://www.ffmpeg.org/)"""
-
 from concurrent.futures import ThreadPoolExecutor
-from winnotify import playSound
 from datetime import datetime
 from subprocess import run
 from commandline import *
 from textwrap import fill
 from pathlib import Path
 from re import findall
+import logging
 
-CONVERT_FROM = ('.gif', '.mp4', '.avi', '.wmv', '.mov')
-CONVERT_TO = '.webm'
+from winnotify import (
+    Messagebox as Mbox,
+    PlaySound
+)
+
+from ..lib.variables import (
+    CRF_VALUES,
+    CONV_FTYPES,
+    CONV_TO,
+    CONV_CODEC
+)
+
 WIDTH = 70
 CLOSE_AFTER = 900
+CONV_STR = CONV_TO[1:].title()
 
 
-class main:
-    """-----
-    Parameters
+class ConvertVideo:
+    """Convert video files with specified extensions (from config.ini) within this folder (and optionally its subfolders) to the preferred format.
+
+    3rd-party Requirements
     ----------
-    filepath (str): The path to either a directory to be searched or a video file
+    FFmpeg (https://www.ffmpeg.org/)
     """
 
     topfol: Path
-    errlog: Path
+    files: list[Path]
     errct: int
     curct: int
     totct: int
 
     def __init__(self, filepath: str):
+        """\
+        Parameters
+        ----------
+        filepath (str): The path to either a directory to be searched or a video file
+        """
+
+        fpath = Path(filepath).resolve()
+        if fpath.is_dir():
+            self.topfol = fpath
+            kwargs = dict(
+                message=f"Converting video files within '{fpath.name}' to {CONV_STR}. Recurse through subfolders?",
+                buttons=('yes', 'no', 'cancel'))
+        else:
+            self.topfol = fpath.parent
+            kwargs = dict(
+                message=f"Convert '{fpath.name}' to {CONV_STR}?")
+        PlaySound('Beep')
+        dorun = Mbox.askquestion(title=f"Convert To {CONV_STR}",
+                                 **kwargs)
+        if dorun == 'cancel':
+            return
+        elif dorun == 'yes':
+            self.files = [pth_in for pth_in in self.topfol.rglob('*.*')
+                          if pth_in.suffix.lower() in CONV_FTYPES]
+        elif fpath.is_dir():
+            self.files = [pth_in for pth_in in self.topfol.glob('*.*')
+                          if pth_in.suffix.lower() in CONV_FTYPES]
+        else:
+            self.files = [fpath]
+        self.start(fpath)
+
+    def start(self, fpath: Path):
         # resize window
         run(['powershell', '-command', ('$ps = (Get-Host).ui.rawui; '
                                         '$sz = $ps.windowsize; '
@@ -46,21 +84,12 @@ class main:
         t_start = datetime.now()
         self.errct = 0
         self.curct = 1
-        fpath = Path(filepath).resolve()
-        self.topfol = (fpath if fpath.is_dir() else fpath.parent)
-        self.errlog = Path(__file__).with_name('errorlog.txt')
-        self.errlog.unlink(missing_ok=True)
         # run
-        if fpath.is_dir():
-            files = [pth_in for pth_in in self.topfol.rglob('*.*')
-                     if pth_in.suffix.lower() in CONVERT_FROM]
-        else:
-            files = [fpath]
-        self.totct = len(files)
-        print(self.getStr(f"CONVERTING {self.totct} ITEMS TO WEBM",
+        self.totct = len(self.files)
+        print(self.getStr(f"CONVERTING {self.totct} ITEMS TO {CONV_STR}",
                           f"({fpath})"))
         with ThreadPoolExecutor(max_workers=4) as ex:
-            ex.map(self.run, files)
+            ex.map(self.run, self.files)
         # stop
         t_end = datetime.now()
         h, m, s = str(t_end - t_start).split(':')
@@ -69,17 +98,8 @@ class main:
                           f"PROCESSED {self.totct} ITEMS WITH {self.errct} ERRORS",
                           f"TIME ELAPSED: {t_elapsed}"))
         # cleanup
-        playSound('Beep')
-        if self.errct:
-            ans = askyesno('Would you like to open the errorlog?',
-                           timeout=CLOSE_AFTER)
-            if ans != 0:
-                if not isinstance(ans, int):
-                    playSound()
-                openfile(self.errlog)
-        else:
-            self.errlog.unlink(missing_ok=True)
-            RunCmd(['powershell', 'pause']).close_after(timeout=CLOSE_AFTER)
+        PlaySound('Beep')
+        RunCmd(['powershell', 'pause']).close_after(timeout=CLOSE_AFTER)
 
     @staticmethod
     def getStr(*args: str) -> str:
@@ -115,24 +135,21 @@ class main:
         except:
             crop = f'crop={wd}:{ht}:0:0'
         # get quality
-        qualities = ((240, 37), (360, 36), (480, 33), (720, 32),
-                     (1080, 31), (1440, 24), (2160, 15))
-        for qty, crf in qualities:
+        for qty, crf in CRF_VALUES:
             if qty >= ht:
                 break
         return (f'ffmpeg -hide_banner -y -i "{pth_in}" -movflags faststart '
-                f'-vf {crop} -c:v vp9 -b:v 0 -crf {crf} "{pth_out}";'
+                f'-vf {crop} -c:v {CONV_CODEC} -b:v 0 -crf {crf} "{pth_out}"; '
                 f'{timecmd}')
 
     def run(self, pth_in: Path) -> None:
-        pth_out = pth_in.with_suffix(CONVERT_TO)
+        pth_out = pth_in.with_suffix(CONV_TO)
         cmd = self.getCmd(pth_in, pth_out)
         returncode = RunCmd(['powershell', '-command', cmd],
                             console='new',
                             visibility='min').wait()
-        name = fill(text=str(pth_in.relative_to(self.topfol).with_suffix('')),
+        name = fill(text=pth_in.relative_to(self.topfol).stem,
                     width=(WIDTH - 14),
-                    break_long_words=True,
                     subsequent_indent='  ')
         divstr = f"{f' {self.curct} of {self.totct} ':-^{WIDTH}}"
         namestr = f"<{name}>"
@@ -145,15 +162,11 @@ class main:
             errstr = fill(text=(f"returncode <{returncode}>" if returncode
                                 else f"<{pth_out}> could not be found"),
                           width=(WIDTH - 3),
-                          break_long_words=True,
                           initial_indent='  ',
                           subsequent_indent='   ')
-            with self.errlog.open('a') as f:
-                f.write(f'{resstr}\n'
-                        f'{errstr}\n'
-                        f"{'#' * (WIDTH + 10)}\n"
-                        '\n\n')
-            playSound()
-            openfile(self.errlog, 'min')
+            logging.exception(f'{resstr}\n'
+                              f'{errstr}\n'
+                              f"{'#' * (WIDTH + 10)}\n"
+                              '\n\n')
             self.errct += 1
         print(f'{divstr}\n{resstr}')

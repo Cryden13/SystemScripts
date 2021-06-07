@@ -1,69 +1,74 @@
-"""Create a new SymLink in a parent directory."""
-
-
-from tkinter import Tk, filedialog as fdlg
-from tkinter.ttk import Label, Button
 from pathlib import Path
 
+from tkinter.ttk import (
+    Label,
+    Button
+)
+from tkinter import (
+    filedialog as fdlg,
+    Tk
+)
 
-class main:
-    """\
-    Parameters
-    ---------
-    `parentdir` : str
-        The path of the directory where the SymLink will be placed
+
+class CreateSym(Tk):
+    """Create a new SymLink in a parent directory.
     """
 
+    initDir: Path
+
     def __init__(self, parentdir: str):
+        """\
+        Parameters
+        ---------
+        parentdir (str): The path of the directory where the SymLink will be placed
+        """
+
         self.initDir = Path(parentdir)
-        self.root = Tk()
+        Tk.__init__(self)
         wd = 400
         ht = 100
-        self.root.title("Create Symbolic Link")
-        self.root.attributes('-topmost', 1)
-        x = ((self.root.winfo_screenwidth() - wd) // 2)
-        y = ((self.root.winfo_screenheight() - ht) // 2)
-        self.root.geometry(f'{wd}x{ht}+{x}+{y}')
-        self.root.bind_all('<Escape>', lambda _: self.root.destroy())
+        self.title("Create Symbolic Link")
+        self.attributes('-topmost', 1)
+        x = ((self.winfo_screenwidth() - wd) // 2)
+        y = ((self.winfo_screenheight() - ht) // 2)
+        self.geometry(f'{wd}x{ht}+{x}+{y}')
+        self.bind_all('<Escape>', lambda _: self.destroy())
 
-        lbl1 = Label(master=self.root,
+        lbl1 = Label(master=self,
                      font='Ebrima 12',
                      text="Would you like to make a Symlink for a folder or a file?")
         lbl1.place(anchor='center',
                    relx=0.5,
                    rely=0.3)
 
-        folder_btn = Button(master=self.root,
+        folder_btn = Button(master=self,
                             text="Folder",
                             underline=0,
-                            command=self.linkFol,
+                            command=lambda: self.createLink('folder'),
                             width=10)
         folder_btn.place(anchor='center',
                          relx=0.25,
                          rely=0.66)
         folder_btn.focus_set()
-        self.root.bind_all('<Return>', lambda _: folder_btn.invoke())
+        self.bind_all('<Return>', lambda _: folder_btn.invoke())
 
-        file_btn = Button(master=self.root,
+        file_btn = Button(master=self,
                           text=" File ",
-                          command=self.linkFile,
+                          command=lambda: self.createLink('file'),
                           width=10)
         file_btn.place(anchor='center',
                        relx=0.5,
                        rely=0.66)
 
-        cancel_btn = Button(master=self.root,
+        cancel_btn = Button(master=self,
                             text="Cancel",
-                            command=self.root.destroy,
+                            command=self.destroy,
                             width=10)
         cancel_btn.place(anchor='center',
                          relx=0.75,
                          rely=0.66)
 
-        self.root.mainloop()
-
-    def linkFol(self): self.createLink('folder')
-    def linkFile(self): self.createLink('file')
+        self.mainloop()
 
     def createLink(self, ftype: str) -> None:
         if ftype == 'folder':
@@ -83,4 +88,4 @@ class main:
         link = self.initDir.joinpath(target.stem)
         link.symlink_to(target=target,
                         target_is_directory=(ftype == 'folder'))
-        self.root.destroy()
+        self.destroy()

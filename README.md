@@ -1,53 +1,88 @@
-# [System Scripts](https://github.com/Cryden13/Python/tree/main/systemscripts)
+# [System Scripts](https://github.com/Cryden13/SystemScripts)
 
 A collection of scripts that can be easily called from command line.
 
 ## Usage
 
-py -m systemscripts \[_method_] \[-h] \[-w] \[-a ARGS]
+py -m systemscripts \[*method*] \[-h] \[-w] \[-a ARGS]
 
 For additional information on each method, type the method followed by '-h'.
 
 ## Methods
 
-### `alterImages`
+### `AlterImages`
 
-- args: _workingdir_
-
-Resize all image files in a directory to 2k and optionally convert them to jpg.  
+Resize image files with specified extensions (from config.ini) within this folder to 2k and optionally convert them to jpg.  
 Requires ImageMagick (<https://imagemagick.org/>)
 
-### `convertToWebm`
+**Parameters:**
 
-- args: _workingdir_
+- *workingdir* (str): The path of the directory that contains the images
 
-Convert all \*.gif and \*.mp4 files within this folder and its subfolders to webm.  
-Requires FFmpeg (<https://www.ffmpeg.org/>)
+### `CompressVideo`
 
-### `createBorder`
+Compress video files with specified extensions (from config.ini) within this folder (and optionally its subfolders) to HEVC/H.265.
 
-- args: _\*rect_
+**Parameters:**
 
-Create a topmost window that acts as a border around the currently active window.  
-For use with my AutoHotkey script `SetOnTop` (TBD)
+- *filepath* (str): The path to either a directory to be searched or a video file
 
-### `createSym`
+### `ConvertVideo`
 
-- args: _parentdir_
+Convert video files with specified extensions (from config.ini) within this folder (and optionally its subfolders) to the preferred format.
+
+**Parameters:**
+
+- *filepath* (str): The path to either a directory to be searched or a video file
+
+### `CreateBorder`
+
+Create a topmost window that acts as a border around the currently active window.
+
+**Parameters:**
+
+- args: *\*rect* (list[int, int, int, int], optional): [default=None] if provided, must be [left, top, right, bottom] of current window
+
+### `CreateSym`
 
 Create a new SymLink in a parent directory.
 
-### `lnkToSym`
+**Parameters:**
 
-- args: _linkpath_
+- *parentdir* (str): The path of the directory where the SymLink will be placed
+
+### `LnkToSym`
 
 Convert a link file (*.lnk) to a SymLink.
 
-### `pullSubfiles`
+**Parameters:**
 
-- args: _topdir_
+- *linkpath* (str): The path to an existing link file (*.lnk)
 
-Move all files in `topdir`'s subdirectories to `topdir`, recursively.
+### `OpenFolLoc`
+
+Resolve all SymLinks in a folder, opening the resulting path.
+
+**Parameters:**
+
+- *folpath* (str): The path to the folder
+- *parent* (str, optional): [default=None] The path to the parent folder, if applicable
+
+### `PullSubfiles`
+
+Move all files in this folder's subdirectories to this folder, recursively.
+
+**Parameters:**
+
+- *topdir* (str): the top-most directory to recurse from
+
+### `TakeOwnership`
+
+Take ownership of a file or folder (optional: recursively).
+
+**Parameters:**
+
+- *filepath* (str): The path to a file or folder
 
 ## Changelog
 
@@ -60,6 +95,23 @@ Move all files in `topdir`'s subdirectories to `topdir`, recursively.
         <tr>
             <td align="center">1.0</td>
             <td>Initial release</td>
+        </tr>
+        <tr>
+            <td align="center">2.0</td>
+            <td>
+                <dl>
+                    <dt>new</dt>
+                    <ul>
+                        <li>added additional methods</li>
+                        <li>overhauled just about everything</li>
+                        <li>removed _msg.py</li>
+                    </ul>
+                    <dt>bugfixes</dt>
+                    <ul>
+                        <li>changed how configparser works for stability</li>
+                    </ul>
+                </dl>
+            </td>
         </tr>
     </tbody>
 </table>

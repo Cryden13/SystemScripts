@@ -1,5 +1,0 @@
- ERROR IN <BlackSheepOVCA\Isadora`s Rent _Male>
-  returncode <1>
-################################################################################
-
-
