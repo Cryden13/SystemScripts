@@ -1,5 +1,3 @@
-
-
 from win32gui import (
     GetForegroundWindow as GetForeWin,
     SetWindowLong,

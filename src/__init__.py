@@ -1,5 +1,4 @@
 from .alterImages import AlterImages
-from .compressVideo import CompressVideo
 from .convertVideo import ConvertVideo
 from .createBorder import CreateBorder
 from .createSym import CreateSym
@@ -10,7 +9,6 @@ from .takeOwnership import TakeOwnership
 
 __all__ = [
     'AlterImages',
-    'CompressVideo',
     'ConvertVideo',
     'CreateBorder',
     'CreateSym',

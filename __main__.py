@@ -2,6 +2,7 @@
 
 
 from commandline import openfile
+from typing import Callable as C
 from winnotify import PlaySound
 from subprocess import run
 from pathlib import Path
@@ -15,10 +16,6 @@ from argparse import (
 from textwrap import (
     fill,
     dedent
-)
-from typing import (
-    Callable as C,
-    Union as U
 )
 
 try:
@@ -58,7 +55,7 @@ class main:
                             datefmt='%m/%d/%Y %I:%M:%S%p')
         try:
             self.buildParser()
-            self.run()
+            self.runScript()
         except Exception:
             logging.exception('')
             err = True
@@ -83,7 +80,7 @@ class main:
         self.subpars = self.parser.add_subparsers(
             help=f"METHOD DESCRIPTION:\n{'='*20}")
         # create help
-        functions = {f: src.__dict__.get(f) for f in src.__all__}
+        functions = {f: getattr(src, f) for f in src.__all__}
         for name, script in functions.items():
             self.createHelp(name, script)
 
@@ -110,7 +107,7 @@ class main:
         subpar.set_defaults(func=script)
         self.subs[script] = subpar
 
-    def run(self):
+    def runScript(self):
         all_args = self.parser.parse_args()
         self.console = all_args.window
         if all_args.help:
@@ -119,11 +116,8 @@ class main:
             except Exception:
                 logging.info(self.parser.format_help())
         else:
-            try:
-                args = all_args.args or list()
-                all_args.func(*args)
-            except Exception:
-                logging.info(self.parser.format_help())
+            args = all_args.args or list()
+            all_args.func(*args)
 
 
 if __name__ == "__main__":

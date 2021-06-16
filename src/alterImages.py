@@ -3,6 +3,7 @@ from subprocess import run
 from pathlib import Path
 
 from winnotify import (
+    InputDialog as InDlg,
     Messagebox as Mbox,
     PlaySound
 )
@@ -25,21 +26,41 @@ class AlterImages:
         workingdir (str): The path of the directory that contains the images
         """
 
+        # init vars
         dirname = Path(workingdir).resolve()
-        convert = Mbox.askquestion(title="Resize and Convert",
-                                   message=f"Resizing files in <{dirname}> to 2k. Also convert to jpg?",
-                                   buttons=('yes', 'no', 'cancel'))
-        if convert == 'cancel':
+        res = {'None': '',
+               '1280x720': 'HD',
+               '1920x1080': 'FHD',
+               '2560x1440': '2K'}
+        # get preferences
+        ans = InDlg.multiinput(title="Alter Images",
+                               message=f"Altering image files in <{dirname}>.",
+                               input_fields=[
+                                   ('Conversion', InDlg._combobox(options=['None', '.jpg', '.png'],
+                                                                  default='None')),
+                                   ('Resize', InDlg._combobox(options=res.keys(),
+                                                              default='2560x1440')),
+                                   ('Recurse folders', InDlg._checkbox())
+                               ])
+        if not ans:
             return
-        recurse = Mbox.askquestion(title="Recurse?",
-                                   message="Recurse through subfolders?")
-        func = dirname.rglob if recurse == 'yes' else dirname.glob
-        files = [f.resolve() for f in func('*.*')
+        # get vars
+        convert = ans['Conversion'] if ans['Conversion'] != 'None' else ''
+        resize = f"-resize {ans['Resize']}" if ans['Resize'] != 'None' else ''
+        if not convert and not resize:
+            Mbox.showerror(title="AlterImages Error",
+                           message="There's nothing to do!")
+            return
+        resstr = f"({res.get(ans['Resize'])}) " if resize else ''
+        recurse = ans['Recurse folders']
+        # find files
+        func = dirname.rglob if recurse else dirname.glob
+        files = [f'"{f.resolve()}"' for f in func('*.*')
                  if f.suffix in ALTER_FTYPES]
-        files = joinwith(files, ' ', ' ', '"{}"')
-        fname, cnv = ('t', '.jpg') if convert == 'yes' else ('f', '')
-        cmd = (f'magick {files} -resize 2560x1440 '
+        # build command
+        fname, ext = ('t', convert) if convert else ('f', '')
+        cmd = (f'magick {files} {resize} '
                f'-set filename:f "%{fname}" '
-               f'+adjoin "(2k) %[filename:f]{".jpg" if cnv else ""}"')
+               f'+adjoin "{resstr}%[filename:f]{ext}"')
         run(cmd, cwd=dirname)
         PlaySound('Beep')

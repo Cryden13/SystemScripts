@@ -12,7 +12,7 @@ For additional information on each method, type the method followed by '-h'.
 
 ### `AlterImages`
 
-Resize image files with specified extensions (from config.ini) within this folder to 2k and optionally convert them to jpg.  
+Resize image files with specified extensions (from config.ini) within this folder and/or convert them to JPG or PNG.  
 Requires ImageMagick (<https://imagemagick.org/>)
 
 **Parameters:**
@@ -21,19 +21,11 @@ Requires ImageMagick (<https://imagemagick.org/>)
 
 ### `CompressVideo`
 
-Compress video files with specified extensions (from config.ini) within this folder (and optionally its subfolders) to HEVC/H.265.
+Convert and compress video files with specified extensions (from config.ini) within this folder (and optionally its subfolders) to HEVC/AAC or VP9/OPUS.
 
 **Parameters:**
 
-- *filepath* (str): The path to either a directory to be searched or a video file
-
-### `ConvertVideo`
-
-Convert video files with specified extensions (from config.ini) within this folder (and optionally its subfolders) to the preferred format.
-
-**Parameters:**
-
-- *filepath* (str): The path to either a directory to be searched or a video file
+- *top_path* (str): The path to either a directory to be searched or a video file
 
 ### `CreateBorder`
 
@@ -109,6 +101,23 @@ Take ownership of a file or folder (optional: recursively).
                     <dt>bugfixes</dt>
                     <ul>
                         <li>changed how configparser works for stability</li>
+                    </ul>
+                </dl>
+            </td>
+        </tr>
+        <tr>
+            <td align="center">2.1</td>
+            <td>
+                <dl>
+                    <dt>new</dt>
+                    <ul>
+                        <li>combined ConvertVideo and CompressVideo for simplicity</li>
+                        <li>added a bunch of customization to ConvertVideo</li>
+                        <li>added a bunch of customization to AlterImages</li>
+                    </ul>
+                    <dt>bugfixes</dt>
+                    <ul>
+                        <li>none👍</li>
                     </ul>
                 </dl>
             </td>
