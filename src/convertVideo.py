@@ -10,6 +10,7 @@ import logging
 
 from winnotify import (
     InputDialog as InDlg,
+    Messagebox as Mbox,
     PlaySound
 )
 from re import (
@@ -58,9 +59,14 @@ class _Opt:
             msg = (f"Compress/Convert {', '.join(CONV_FTYPES)} "
                    f"files within <{fpath.name}>.")
         else:
+            dur: str = run(['ffprobe', '-v', 'error', '-show_entries',
+                            'format=duration', '-of', 'csv=p=0', '-i', fpath],
+                           capture_output=True,
+                           text=True).stdout
             fields.insert(0, ('Output format', InDlg._combobox(options=['.mkv', '.webm'],
-                                                               default='.mkv')))
+                                                               default=('.mkv' if float(dur) >= cls.playtime else '.webm'))))
             msg = f"Compress/Convert <{fpath.name}>."
+        PlaySound('Beep')
         ans = InDlg.multiinput(
             title="Convert Video - Options",
             message=f"{msg}\n",
@@ -119,6 +125,7 @@ class _Opt:
 class _BuildCmd:
     pth_in: Path
     pth_out: Path
+    vid_dur: float
     cmd: O[str]
 
     def __init__(self, pth_in: Path):
@@ -128,31 +135,33 @@ class _BuildCmd:
         if vidcmd or audcmd or [_Opt.vid_strm, _Opt.aud_strm, _Opt.sub_strm].count('all') < 3:
             timecmd = self.timeCmd()
             if self.pth_out.suffix == '.webm':
-                self.cmd = (f'ffmpeg -hide_banner -y -hwaccel cuda -i "{pth_in}" '
+                self.cmd = (f'ffmpeg -hide_banner -y -i "{pth_in}" '
+                            f'{"-hwaccel_output_format cuda" if CONV_NVENC else ""} '
                             f'-movflags faststart {vidcmd} "{self.pth_out}"; {timecmd}')
             else:
                 self.cmd = (f'ffmpeg -hide_banner -y -i "{pth_in}" -movflags '
                             f'faststart {_Opt.getMap()} -c copy {vidcmd} '
-                            f'{audcmd} "{self.pth_out}"; {timecmd}')
+                            f'{audcmd} -c:s ssa "{self.pth_out}"; {timecmd}')
         elif pth_in.suffix != self.pth_out.suffix:
             timecmd = self.timeCmd()
-            self.cmd = (f'ffmpeg -hide_banner -y -hwaccel cuda -i "{pth_in}" -movflags '
-                        f'faststart -c copy "{self.pth_out}"; {timecmd}')
+            self.cmd = (f'ffmpeg -hide_banner -y -i "{pth_in}" -c copy '
+                        f"{'' if self.pth_out.suffix == '.webm' else '-c:s ssa'} "
+                        f'-movflags faststart "{self.pth_out}"; {timecmd}')
         else:
             self.cmd = None
 
     def videoCmd(self) -> str:
         # get video info
-        vidinfo: str = run(['ffprobe', '-i', self.pth_in, '-v', 'error',
-                            '-show_entries', 'format=duration', '-select_streams',
+        vidinfo: str = run(['ffprobe', '-i', self.pth_in, '-v', 'error', '-select_streams',
                             f"v{'' if _Opt.vid_strm == 'all' else f':{_Opt.vid_strm}'}",
-                            '-show_entries', 'stream=codec_name,height,width', '-of', 'default=nw=1'],
+                            '-show_entries', 'format=duration:stream=codec_name,height,width',
+                            '-of', 'default=nw=1'],
                            capture_output=True,
                            text=True).stdout
         codec = re_search(r'codec_name=(.+)', vidinfo).group(1).lower()
-        ht = int(re_search(r'height=(.+)', vidinfo).group(1))
-        wd = int(re_search(r'width=(.+)', vidinfo).group(1))
-        dur = float(re_search(r'duration=(.+)', vidinfo).group(1))
+        v_ht = int(re_search(r'height=(.+)', vidinfo).group(1))
+        v_wd = int(re_search(r'width=(.+)', vidinfo).group(1))
+        self.vid_dur = float(re_search(r'duration=(.+)', vidinfo).group(1))
         # get crop
         cropinfo: str = run(['ffmpeg', '-hide_banner', '-i', self.pth_in, '-vframes', '10',
                              '-vf', 'cropdetect', '-f', 'null', '-'],
@@ -162,7 +171,7 @@ class _BuildCmd:
         try:
             crop = re_findall(r'crop=.+', cropinfo)[-1]
             cw, ch, cx, cy = re_findall(r'\d+', crop)
-            if '-' in crop or (cw - cx) < (wd / 2) or (ch - cy) < (ht / 2):
+            if '-' in crop or (cw - cx) < (v_wd / 3) or (ch - cy) < (v_ht / 3):
                 crop = str()
             else:
                 crop = f"-vf {crop}"
@@ -174,17 +183,17 @@ class _BuildCmd:
         if 'hevc' in codec or 'vp9' in codec or 'vp8' in codec:
             self.pth_out = hevcpth if 'hevc' in codec else vp9pth
             return crop
-        elif dur > _Opt.playtime and CONV_NVENC:
+        elif CONV_NVENC and _Opt.output != '.webm' and self.vid_dur >= _Opt.playtime:
             self.pth_out = hevcpth
             return f'{crop} -c:v hevc_nvenc -preset slow'
         else:
-            # get crf from ht
+            # get crf from v_ht
             crf = 7
-            for h, c in CRF_VALS:
-                if h >= ht:
-                    crf = c
+            for ht, val in CRF_VALS:
+                if ht >= v_ht:
+                    crf = val
                     break
-            if dur > _Opt.playtime:
+            if _Opt.output != '.webm' and self.vid_dur >= _Opt.playtime:
                 self.pth_out = hevcpth
                 return f'{crop} -c:v libx265 -crf {crf} -preset slow'
             else:
@@ -202,10 +211,10 @@ class _BuildCmd:
                            text=True).stdout
         if not audinfo:
             return str()
-        codec = re_search(r'codec_name=(.+)', audinfo).group(1)
+        codec = re_search(r'codec_name=(.+)', audinfo).group(1).lower()
         chnls = int(re_search(r'channels=(.+)', audinfo).group(1))
         # check if audio already compressed
-        if 'aac' in codec:
+        if 'aac' in codec or 'ac3' in codec or 'opus' in codec or 'vorbis' in codec:
             return str()
         # build command
         return f'-c:a aac -b:a {chnls * 64}k'
@@ -233,7 +242,7 @@ class ConvertVideo:
 
     topfol: Path
     files: list[Path]
-    errct: int
+    results: dict[str, int]
     finct: int
     totct: int
     dSize: int = 0
@@ -249,7 +258,6 @@ class ConvertVideo:
         run(['powershell', '-command', CON_SZ_CMD])
         # init vars
         fpath = Path(top_path).resolve()
-        PlaySound('Beep')
         dorun = _Opt.getInput(fpath)
         if not dorun:
             return
@@ -263,92 +271,113 @@ class ConvertVideo:
         else:
             self.topfol = fpath.parent
             self.files = [fpath]
-        self.start(fpath)
+        self.run(fpath)
 
-    def start(self, fpath: Path):
+    def run(self, fpath: Path):
+        def formatTxt(*args: str) -> str:
+            return '\n'.join([f'{f" {s} " if s else s:=^{CON_WD}}'
+                              for s in ('', *args, '')])
         # init vars
         t_start = datetime.now()
-        self.errct = 0
+        self.results = dict(err=0, fail=0)
         self.finct = 1
-        # run
         self.totct = len(self.files)
-        print(self.getStr(f"COMPRESSING/CONVERTING {self.totct} ITEMS",
-                          f"({fpath})",
-                          *_Opt.getInfo()))
+        print(formatTxt(f"COMPRESSING/CONVERTING {self.totct} ITEMS",
+                        f"({fpath})",
+                        *_Opt.getInfo()))
+        # run
         with ThreadPoolExecutor(max_workers=int(_Opt.thread_ct)) as ex:
             ex.map(self.process, self.files)
         # stop
         t_end = datetime.now()
         h, m, s = str(t_end - t_start).split(':')
         t_elapsed = ' '.join((f"{h:0>2}h", f"{m:0>2}m", f"{float(s):05.02f}s"))
-        print(self.getStr("PROCESSING COMPLETE",
-                          f"PROCESSED {self.totct} ITEMS WITH {self.errct} ERRORS",
-                          f"TIME ELAPSED: {t_elapsed}",
-                          f"RESULT: {self.dSize}MB {'REDUCTION' if self.dSize < 0 else 'INCREASE'}"))
         # cleanup
-        PlaySound('Beep')
-        RunCmd(['powershell', 'pause']).close_after(timeout=CON_CLOSE_AFTER)
-
-    @staticmethod
-    def getStr(*args: str) -> str:
-        return '\n'.join([f'{f" {s} " if s else s:=^{CON_WD}}'
-                          for s in ('', *args, '')])
+        msg = (f"Processed {self.totct} items:\n"
+               f"  {self.results['fail']} failed\n"
+               f"  {self.results['err']} errors\n"
+               f"Time elapsed: {t_elapsed}\n"
+               f"Result: {self.dSize:.2f}MB {'reduction' if self.dSize < 0 else 'increase'} in size")
+        Mbox.showinfo(title='Processing Complete',
+                      message=msg)
+        run(['powershell', 'clear'])
 
     def process(self, pth_in: Path) -> None:
-        # run
-        res = _BuildCmd(pth_in)
-        pth_out = res.pth_out
-        cmd = res.cmd
+        def getPath() -> str:
+            fill = TextWrapper(width=CON_WD,
+                               subsequent_indent='    ').fill
+            namestr = fill(f'INPUT: "{pth_in.name}"')
+            if _Opt.recurse:
+                ffol = str(pth_in.parent.relative_to(self.topfol))
+                if ffol != '.':
+                    ffol = f'.\\{ffol}'
+                folstr = fill(f'DIR: "{ffol}"')
+                return f'{folstr}\n{namestr}'
+            else:
+                return namestr
+
+        def getResults() -> str:
+            if pth_out.exists() and pth_out.stat().st_size >= 100 and not returncode:
+                sz_in = float(pth_in.stat().st_size)
+                sz_out = float(pth_out.stat().st_size)
+                sz_dif = (sz_out - sz_in) / (1024**2)
+                self.dSize += sz_dif
+                sz_difp = (1.0 - sz_out / sz_in) * 100
+                if sz_dif < 0:
+                    resstr = ("COMPRESSED FILE BY "
+                              f"{sz_difp:02.2f}% ({sz_dif:+02.2f}MB)")
+                    if _Opt.overwrite:
+                        err = RunCmd(
+                            f'powershell Move-Item -LiteralPath "{pth_out}" "{pth_out.with_stem(pth_in.stem)}" -Force',
+                            console='new',
+                            visibility='hide',
+                            capture_output=True).communicate()[1]
+                        if err:
+                            resstr += "\n    COULDN'T REMOVE ORIGINAL FILE"
+                elif _Opt.keepfail:
+                    self.results['fail'] += 1
+                    resstr = ("CONVERSION SUCCESSFUL;\n"
+                              f"   COMPRESSION INEFFECTIVE ({sz_dif:+02.2f}MB)")
+                    if _Opt.overwrite:
+                        err = RunCmd(
+                            f'powershell Move-Item -LiteralPath "{pth_out}" "{pth_out.with_stem(pth_in.stem)}" -Force',
+                            console='new',
+                            visibility='hide',
+                            capture_output=True).communicate()[1]
+                        if err:
+                            resstr += "\n    COULDN'T REMOVE ORIGINAL FILE"
+                else:
+                    self.results['fail'] += 1
+                    resstr = f"PROCESSING INEFFECTIVE ({sz_dif:+02.2f}MB)"
+                    pth_out.unlink(missing_ok=True)
+            else:
+                self.results['err'] += 1
+                errstr = (f"returncode <{returncode}>" if returncode
+                          else "file could not be processed" if not pth_out.exists()
+                          else "file processing failed" if pth_out.stat().st_size < 100
+                          else "unknown error")
+                resstr = f"ERROR: {errstr}"
+                pth_out.unlink(missing_ok=True)
+                logging.exception(f'{"#" * 10}\n'
+                                  f'{pathstr}\n'
+                                  f'>> {resstr}\n')
+            return resstr
+
+        info = _BuildCmd(pth_in)
+        pth_out, cmd = info.pth_out, info.cmd
         if cmd:
             returncode = RunCmd(['powershell', '-command', cmd],
                                 console='new',
                                 visibility='min').wait()
-        # get folder/name
-        divstr = f"{f' [{str(datetime.now())[5:19]}] Item {self.finct} of {self.totct} ':-^{CON_WD}}"
-        self.finct += 1
-        fill = TextWrapper(width=CON_WD,
-                           subsequent_indent='    ').fill
-        namestr = fill(f'FILE: "{pth_in.name}"')
-        if _Opt.recurse:
-            ffol = str(pth_in.parent.relative_to(self.topfol))
-            if ffol != '.':
-                ffol = f'.\\{ffol}'
-            folstr = fill(f'DIR: "{ffol}"')
-            pathstr = f'{folstr}\n{namestr}'
-        else:
-            pathstr = namestr
         # print results
+        divstr = f"{f' Item {self.finct} of {self.totct} ':-^{CON_WD}}"
+        self.finct += 1
+        pathstr = getPath()
         if not cmd:
             resstr = "ALREADY COMPRESSED/CONVERTED"
-        elif pth_out.exists() and pth_out.stat().st_size >= 100 and not returncode:
-            sz_in = float(pth_in.stat().st_size)
-            sz_out = float(pth_out.stat().st_size)
-            sz_dif = (sz_out - sz_in) / (1024**2)
-            self.dSize += sz_dif
-            sz_difp = (1 - sz_out / sz_in) * 100
-            if sz_dif < 0:
-                resstr = ("COMPRESSED FILE BY "
-                          f"{sz_difp:02.2f}% ({sz_dif:+02.2f}MB)")
-                if _Opt.overwrite:
-                    pth_in.unlink()
-            elif pth_in.suffix != pth_out.suffix:
-                resstr = ("CONVERSION SUCCESSFUL;\n"
-                          f"   COMPRESSION INEFFECTIVE ({sz_dif:+02.2f}MB)")
-                if _Opt.overwrite:
-                    pth_in.unlink()
-            else:
-                resstr = f"PROCESSING INEFFECTIVE ({sz_dif:+02.2f}MB)"
-                if not _Opt.keepfail:
-                    pth_out.unlink()
         else:
-            self.errct += 1
-            errstr = (f"returncode <{returncode}>" if returncode
-                      else "file could not be processed" if not pth_out.exists()
-                      else "file processing failed" if pth_out.stat().st_size < 100
-                      else "unknown error")
-            resstr = f"ERROR: {errstr}"
-            pth_out.unlink(missing_ok=True)
-            logging.exception(f'{"#" * 10}\n'
-                              f'{pathstr}\n'
-                              f'>> {resstr}\n')
-        print(f'{divstr}\n{pathstr}\n>> {resstr}')
+            resstr = getResults()
+        print(f'{divstr}\n'
+              f'[{str(datetime.now())[5:19]}]\n'
+              f'{pathstr}\n'
+              f'>> {resstr}\n')

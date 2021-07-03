@@ -17,13 +17,7 @@ from textwrap import (
     fill,
     dedent
 )
-
-try:
-    from . import src
-except ImportError:
-    pth = Path(__file__).parent
-    run(['py', '-m', pth.name, '-w', '-h'], cwd=pth.parent)
-    raise SystemExit
+from . import src
 
 
 class main:

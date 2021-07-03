@@ -29,7 +29,7 @@ ALTER_FTYPES = _cfg.getlines(_sct, 'file_types')
 
 # ConvertVideo
 _sct = 'ConvertVideo'
-CON_WD = max(40, _cfg.getint(_sct, 'console_wd'))
+CON_WD = max(40, _cfg.getint(_sct, 'console_wd')) - 1
 CON_HT = _cfg.getint(_sct, 'console_ht')
 CON_SZ_CMD = ('$ps = (Get-Host).ui.rawui; '
               '$sz = $ps.windowsize; '

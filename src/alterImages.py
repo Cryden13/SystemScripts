@@ -55,8 +55,8 @@ class AlterImages:
         recurse = ans['Recurse folders']
         # find files
         func = dirname.rglob if recurse else dirname.glob
-        files = [f'"{f.resolve()}"' for f in func('*.*')
-                 if f.suffix in ALTER_FTYPES]
+        files = ' '.join([f'"{f.resolve()}"' for f in func('*.*')
+                          if f.suffix in ALTER_FTYPES])
         # build command
         fname, ext = ('t', convert) if convert else ('f', '')
         cmd = (f'magick {files} {resize} '
