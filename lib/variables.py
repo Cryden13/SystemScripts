@@ -26,6 +26,9 @@ _cfg = _CFG()
 # AlterImages
 _sct = 'AlterImages'
 ALTER_FTYPES = _cfg.getlines(_sct, 'file_types')
+ALTER_OTYPES = _cfg.getlines(_sct, 'output_types') or ['.jpg', '.png']
+ALTER_FILL_CLR = _cfg.get(_sct, 'fill_color')
+
 
 # ConvertVideo
 _sct = 'ConvertVideo'
