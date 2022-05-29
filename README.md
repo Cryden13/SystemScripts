@@ -1,19 +1,19 @@
 # [System Scripts](https://github.com/Cryden13/SystemScripts)
 
-A collection of scripts that can be easily called from command line.
+A collection of scripts made to be easily called from command line.
 
 ## Usage
 
-py -m systemscripts \[*method*] \[-h] \[-w] \[-a ARGS]
+py -m systemscripts \[*method*] \[-h | --help] \[-w | --window] \[-a | --args ARGS]
 
-For additional information on each method, type the method followed by '-h'.
+For additional information on each method, type the method followed by '-h | --help'.
 
 ## Methods
 
 ### `AlterImages`
 
 Resize image files with specified extensions (from config.ini) within this folder and/or convert them to JPG or PNG.  
-Requires ImageMagick (<https://imagemagick.org/>)
+**(Requires [ImageMagick](<https://imagemagick.org/>))
 
 **Parameters:**
 
@@ -26,14 +26,6 @@ Convert and compress video files with specified extensions (from config.ini) wit
 **Parameters:**
 
 - *top_path* (str): The path to either a directory to be searched or a video file
-
-### `CreateBorder`
-
-Create a topmost window that acts as a border around the currently active window.
-
-**Parameters:**
-
-- args: *\*rect* (list[int, int, int, int], optional): [default=None] if provided, must be [left, top, right, bottom] of current window
 
 ### `CreateSym`
 
@@ -53,7 +45,7 @@ Convert a link file (*.lnk) to a SymLink.
 
 ### `OpenFolLoc`
 
-Resolve all SymLinks in a folder, opening the resulting path.
+Resolve all SymLinks in a folder recursively, opening the resulting path.
 
 **Parameters:**
 
@@ -62,11 +54,11 @@ Resolve all SymLinks in a folder, opening the resulting path.
 
 ### `PullSubfiles`
 
-Move all files in this folder's subdirectories to this folder, recursively.
+Move all files in this folder and its subdirectories to this folder, recursively.
 
 **Parameters:**
 
-- *topdir* (str): the top-most directory to recurse from
+- *topdir* (str): the top-most directory to recurse from/move to
 
 ### `TakeOwnership`
 
@@ -118,6 +110,21 @@ Take ownership of a file or folder (optional: recursively).
                     <dt>bugfixes</dt>
                     <ul>
                         <li>none👍</li>
+                    </ul>
+                </dl>
+            </td>
+        </tr>
+        <tr>
+            <td align="center">2.2</td>
+            <td>
+                <dl>
+                    <dt>new</dt>
+                    <ul>
+                        <li>overhauled ConvertVideo</li>
+                    </ul>
+                    <dt>bugfixes</dt>
+                    <ul>
+                        <li>fixed ConvertVideo errors</li>
                     </ul>
                 </dl>
             </td>
