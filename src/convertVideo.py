@@ -113,6 +113,14 @@ class _Opt:
         return ['', f"{' Options: ':-^{51}}", *out]
 
 
+def ffprobe(pth_in: Path, streams: str, entries: str, frmt: str = 'default=nw=1') -> str:
+    res = run(['ffprobe', pth_in, '-v', 'error', '-select_streams',
+               streams, '-show_entries', entries, '-of', frmt],
+              capture_output=True,
+              text=True)
+    return res.stdout
+
+
 class _DataContainer:
     def __init__(self, pth_in: Path):
         self.vid = self._Vid(pth_in)
@@ -120,12 +128,16 @@ class _DataContainer:
         self.sub = self._Sub(pth_in)
 
     class _Vid:
+        codec: str
+        ht: int
+        wd: int
+        dur: float
+        crop: str
+
         def __init__(self, pth_in: Path):
-            raw: str = run(['ffprobe', '-i', pth_in, '-v', 'error', '-select_streams', 'v:0',
-                            '-show_entries', 'format=duration:stream=codec_name,height,width',
-                            '-of', 'default=nw=1'],
-                           capture_output=True,
-                           text=True).stdout
+            raw = ffprobe(pth_in=pth_in,
+                          streams='v:0',
+                          entries='format=duration:stream=codec_name,height,width')
             self.codec = re_search(r'codec_name=(.+)', raw).group(1).lower()
             self.ht = int(re_search(r'height=(.+)', raw).group(1))
             self.wd = int(re_search(r'width=(.+)', raw).group(1))
@@ -158,28 +170,76 @@ class _DataContainer:
                 self.crop = ''
 
     class _Aud:
+        raw: str
+        codec: str
+        chnls: int
+        add_metadata: O[str] = None
+
         def __init__(self, pth_in: Path):
-            self.raw: str = run(['ffprobe', pth_in, '-v', 'error', '-select_streams',
-                                 f"a{f':{_Opt.aud_strm}' if _Opt.aud_strm.isnumeric() else ''}",
-                                 '-show_entries', 'stream=codec_name,channels', '-of', 'default=nw=1'],
-                                capture_output=True,
-                                text=True).stdout
-            if self.raw:
-                self.codec = re_search(
-                    r'codec_name=(.+)', self.raw).group(1).lower()
-                self.chnls = int(
-                    re_search(r'channels=(.+)', self.raw).group(1)) * 64
+            self.raw = ffprobe(pth_in=pth_in,
+                               streams=f"a{f':{_Opt.aud_strm}' if _Opt.aud_strm.isnumeric() else ''}",
+                               entries='stream=codec_name,channels')
+            self.codec = re_search(
+                r'codec_name=(.+)', self.raw).group(1).lower()
+            self.chnls = int(
+                re_search(r'channels=(.+)', self.raw).group(1)) * 64
+            if _Opt.aud_strm in CONV_AUD_LANGS:
+                raw_lang = ffprobe(pth_in=pth_in,
+                                   streams='a',
+                                   entries='stream_tags=language',
+                                   frmt='compact=p=0:nk=1')
+                if not _Opt.aud_strm in raw_lang:
+                    # ttls = ffprobe(pth_in=pth_in,
+                    #                streams='a',
+                    #                entries='stream_tags=title',
+                    #                frmt='compact=p=0:nk=1')
+                    # ttls = [f'{i}|{ttl}' for i, ttl in
+                    #         enumerate(ttls.split('\n')) if ttl]
+                    # ans = InDlg.comboinput(title="Audio Stream Error",
+                    #                        label="Audio Stream",
+                    #                        options=ttls,
+                    #                        message=f"Couldn't find an audio stream in {_Opt.aud_strm}. Please select the stream manually.")
+                    # if ans:
+                    #     self.add_metadata = _Opt.aud_strm
+                    #     _Opt.aud_strm = re_search(r'^(\d+)',
+                    #                               ans['Audio Stream']).group(1)
+                    # else:
+                    _Opt.aud_strm = 'all'
 
     class _Sub:
+        codec: str
+        add_metadata: O[str] = None
+
         def __init__(self, pth_in: Path):
             if _Opt.sub_strm == 'remove':
                 self.codec = ''
             else:
-                self.codec: str = run(['ffprobe', pth_in, '-v', 'error', '-select_streams',
-                                       f"s{f':{_Opt.sub_strm}' if _Opt.sub_strm.isnumeric() else ''}",
-                                       '-show_entries', 'stream=codec_name', '-of', 'csv=p=0'],
-                                      capture_output=True,
-                                      text=True).stdout
+                self.codec = ffprobe(pth_in=pth_in,
+                                     streams=f"s{f':{_Opt.sub_strm}' if _Opt.sub_strm.isnumeric() else ''}",
+                                     entries='stream=codec_name',
+                                     frmt='csv=p=0')
+                if _Opt.sub_strm in CONV_SUB_LANGS:
+                    raw_lang = ffprobe(pth_in=pth_in,
+                                       streams='s',
+                                       entries='stream_tags=language',
+                                       frmt='compact=p=0:nk=1')
+                    if not _Opt.sub_strm in raw_lang:
+                        # ttls = ffprobe(pth_in=pth_in,
+                        #                streams='s',
+                        #                entries='stream_tags=title',
+                        #                frmt='compact=p=0:nk=1')
+                        # ttls = [f'{i}|{ttl}' for i, ttl in
+                        #         enumerate(ttls.split('\n')) if ttl]
+                        # ans = InDlg.comboinput(title="Subtitle Stream Error",
+                        #                        label="Subtitle Stream",
+                        #                        options=ttls,
+                        #                        message=f"Couldn't find an subtitle stream in {_Opt.sub_strm}. Please select the stream manually.")
+                        # if ans:
+                        #     self.add_metadata = _Opt.sub_strm
+                        #     _Opt.sub_strm = re_search(r'^(\d+)',
+                        #                               ans['Subtitle Stream']).group(1)
+                        # else:
+                        _Opt.sub_strm = 'all'
 
 
 class _BuildCmd:
@@ -300,14 +360,20 @@ class _BuildCmd:
         a_data = self.data.aud
         if _Opt.aud_strm in CONV_AUD_LANGS:
             self.todo['A'].append('l')
-            map_str = f'-map 0:a:m:language:{_Opt.aud_strm}?'
+            map_str = f'-map 0:a:m:language:{_Opt.aud_strm}'
+        elif a_data.add_metadata:
+            self.todo['A'].append('l')
+            map_str = f'-map 0:a:{_Opt.aud_strm} -metadata:s:a:0 language={a_data.add_metadata}'
+        elif _Opt.aud_strm.isnumeric():
+            self.todo['A'].append('s')
+            map_str = f'-map 0:a:{_Opt.aud_strm}'
         else:
             map_str = '-map 0:a?'
         # get audio info
         if not a_data.raw:
             return map_str
         # check if audio already compressed
-        if ('aac' in a_data.codec and (self.pth_out.suffix == '.mkv' or self.pth_out.suffix == '.mp4')) or ('opus' in a_data.codec and self.pth_out.suffix == '.webm'):
+        if ('aac' in a_data.codec and self.pth_out.suffix in ['.mkv', '.mp4']) or ('opus' in a_data.codec and self.pth_out.suffix == '.webm'):
             if map_str == '-map 0:a?':
                 self.do_aud = False
             return f'{map_str} -c:a copy'
@@ -321,7 +387,13 @@ class _BuildCmd:
         s_data = self.data.sub
         if _Opt.sub_strm in CONV_SUB_LANGS:
             self.todo['S'].append('l')
-            map_str = f'-map 0:s:m:language:{_Opt.sub_strm}?'
+            map_str = f'-map 0:s:m:language:{_Opt.sub_strm}'
+        elif s_data.add_metadata:
+            self.todo['S'].append('l')
+            map_str = f'-map 0:a:{_Opt.sub_strm} -metadata:s:s:0 language={s_data.add_metadata}'
+        elif _Opt.sub_strm.isnumeric():
+            self.todo['S'].append('s')
+            map_str = f'-map 0:s:{_Opt.sub_strm}'
         else:
             map_str = '-map 0:s?'
         if not s_data.codec or ('ass' in s_data.codec and self.pth_out.suffix == '.mkv') or ('mov_text' in s_data.codec and self.pth_out.suffix == '.mp4'):
@@ -382,6 +454,7 @@ class ConvertVideo:
         fpath = Path(top_path).resolve()
         dorun = _Opt.getInput(fpath)
         if not dorun:
+            print("Don't run")
             return
         elif fpath.is_dir():
             self.topfol = fpath

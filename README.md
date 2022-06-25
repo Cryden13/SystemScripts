@@ -129,5 +129,20 @@ Take ownership of a file or folder (optional: recursively).
                 </dl>
             </td>
         </tr>
+        <tr>
+            <td align="center">2.3</td>
+            <td>
+                <dl>
+                    <dt>new</dt>
+                    <ul>
+                        <li>ConvertVideo checks for subtitle language</li>
+                    </ul>
+                    <dt>bugfixes</dt>
+                    <ul>
+                        <li>Fixed selecting streams in ConvertVideo not working</li>
+                    </ul>
+                </dl>
+            </td>
+        </tr>
     </tbody>
 </table>
