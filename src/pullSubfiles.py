@@ -12,8 +12,7 @@ from re import (
 
 
 class PullSubfiles:
-    """Move all files in this folder's subdirectories to this folder, recursively.
-    """
+    """Move all files in this folder's subdirectories to this folder, recursively."""
 
     def __init__(self, topdir: str):
         """\

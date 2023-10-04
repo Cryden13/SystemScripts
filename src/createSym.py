@@ -1,20 +1,21 @@
 from pathlib import Path
 
-from tkinter.ttk import (
-    Label,
-    Button
+from PyQt5.QtWidgets import (
+    QPushButton,
+    QFileDialog,
+    QVBoxLayout,
+    QHBoxLayout,
+    QDialog,
+    QLabel
 )
-from tkinter import (
-    filedialog as fdlg,
-    Tk
-)
+
+from winnotify import PlaySound
 
 
-class CreateSym(Tk):
-    """Create a new SymLink in a parent directory.
-    """
+class CreateSym(QDialog):
+    """Create a new SymLink in a parent directory."""
 
-    initDir: Path
+    parent_dir: Path
 
     def __init__(self, parentdir: str):
         """\
@@ -23,69 +24,55 @@ class CreateSym(Tk):
         parentdir (str): The path of the directory where the SymLink will be placed
         """
 
-        self.initDir = Path(parentdir)
-        Tk.__init__(self)
-        wd = 400
-        ht = 100
-        self.title("Create Symbolic Link")
-        self.attributes('-topmost', 1)
-        x = ((self.winfo_screenwidth() - wd) // 2)
-        y = ((self.winfo_screenheight() - ht) // 2)
-        self.geometry(f'{wd}x{ht}+{x}+{y}')
-        self.bind_all('<Escape>', lambda _: self.destroy())
+        self.parent_dir = Path(parentdir)
+        QDialog.__init__(self)
+        self.setMinimumWidth(400)
+        self.setMinimumHeight(100)
+        self.setWindowTitle("Create Symbolic Link")
 
-        lbl1 = Label(master=self,
-                     font='Ebrima 12',
-                     text="Would you like to make a Symlink for a folder or a file?")
-        lbl1.place(anchor='center',
-                   relx=0.5,
-                   rely=0.3)
+        vlayout = QVBoxLayout(self)
+        lbl = QLabel(parent=self,
+                     text="Would you like to make a Symlink for a directory or a file?")
+        vlayout.addWidget(lbl)
 
-        folder_btn = Button(master=self,
-                            text="Folder",
-                            underline=0,
-                            command=lambda: self.createLink('folder'),
-                            width=10)
-        folder_btn.place(anchor='center',
-                         relx=0.25,
-                         rely=0.66)
-        folder_btn.focus_set()
-        self.bind_all('<Return>', lambda _: folder_btn.invoke())
+        btnlayout = QHBoxLayout()
+        btnlayout.setSpacing(20)
+        btnlayout.setContentsMargins(50, 0, 50, 0)
 
-        file_btn = Button(master=self,
-                          text=" File ",
-                          command=lambda: self.createLink('file'),
-                          width=10)
-        file_btn.place(anchor='center',
-                       relx=0.5,
-                       rely=0.66)
+        folder_btn = QPushButton(text="Directory")
+        folder_btn.clicked.connect(lambda *_: self.createLink('dir'))
+        btnlayout.addWidget(folder_btn)
 
-        cancel_btn = Button(master=self,
-                            text="Cancel",
-                            command=self.destroy,
-                            width=10)
-        cancel_btn.place(anchor='center',
-                         relx=0.75,
-                         rely=0.66)
+        file_btn = QPushButton(text="File")
+        file_btn.clicked.connect(lambda *_: self.createLink('file'))
+        btnlayout.addWidget(file_btn)
 
-        self.mainloop()
+        cancel_btn = QPushButton(text="Cancel")
+        cancel_btn.clicked.connect(self.close)
+        btnlayout.addWidget(cancel_btn)
+
+        vlayout.addLayout(btnlayout)
+
+        self.exec()
 
     def createLink(self, ftype: str) -> None:
-        if ftype == 'folder':
-            ask = fdlg.askdirectory
-            def make(t: Path): t.mkdir(parents=True)
+        kwargs = dict(parent=self,
+                      caption=f'Select the {ftype} to link to:',
+                      directory=str(self.parent_dir))
+        if ftype == 'dir':
+            sel = QFileDialog.getExistingDirectory(**kwargs)
         else:
-            ask = fdlg.askopenfilename
-            def make(t: Path): t.touch()
-        kwargs = dict(initialdir=self.initDir,
-                      title=f'Select the {ftype} to link to:')
-        sel = ask(**kwargs)
+            sel = QFileDialog.getOpenFileName(**kwargs)[0]
         if not sel:
             return
+        print(sel)
         target = Path(sel)
-        if not target.exists():
-            make(target)
-        link = self.initDir.joinpath(target.stem)
+        link = self.parent_dir.joinpath(target.stem)
+        n = 1
+        while link.exists():
+            link = link.with_stem(f"{link.stem}({n})")
+            n += 1
         link.symlink_to(target=target,
-                        target_is_directory=(ftype == 'folder'))
-        self.destroy()
+                        target_is_directory=(ftype == 'dir'))
+        PlaySound("Beep")
+        self.close()

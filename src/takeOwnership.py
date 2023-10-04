@@ -4,8 +4,7 @@ from pathlib import Path
 
 
 class TakeOwnership:
-    """Take ownership of a file or folder (optional: recursively).
-    """
+    """Take ownership of a file or folder (optional: recursively)."""
 
     def __init__(self, filepath: str):
         """\
@@ -25,7 +24,9 @@ class TakeOwnership:
             return
 
         cmd = f'subinacl /noverbose /{{}} "{path}{{}}" /setowner=%username% /grant=%username%=F'
-        run(cmd.format('file', ''), shell=True)
+        run(cmd.format('file', ''),
+            shell=True)
 
         if doiter == 'yes':
-            run(cmd.format('subdirectories', '\\*.*'), shell=True)
+            run(cmd.format('subdirectories', '\\*.*'),
+                shell=True)

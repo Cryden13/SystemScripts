@@ -5,8 +5,7 @@ from winnotify import Messagebox as Mbox
 
 
 class LnkToSym:
-    """Convert a link file (*.lnk) to a SymLink.
-    """
+    """Convert a link file (*.lnk) to a SymLink."""
 
     def __init__(self, linkpath: str):
         """\

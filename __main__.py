@@ -1,6 +1,8 @@
 """A collection of scripts that can be easily called from the command line."""
 
 
+from PyQt5.QtWidgets import QApplication
+from sys import argv as sys_argv
 from commandline import openfile
 from typing import Callable as C
 from winnotify import PlaySound
@@ -14,8 +16,8 @@ from argparse import (
     RawTextHelpFormatter
 )
 from textwrap import (
-    fill,
-    dedent
+    dedent,
+    fill
 )
 from . import src
 
@@ -36,6 +38,7 @@ class main:
 
     def __init__(self):
         # init vars
+        app = QApplication(sys_argv)
         self.dirname = Path(__file__).parent
         self.console = False
         self.subs = dict()
@@ -63,6 +66,7 @@ class main:
                 else:
                     print(logfile.read_text())
                     run(['powershell', 'pause'])
+            # app.exec()
 
     def buildParser(self) -> None:
         # create parser
@@ -83,7 +87,7 @@ class main:
             outstr = str()
             for line in dedent(txt).split('\n'):
                 outstr += fill(text=line,
-                               width=90)
+                               width=75)
                 outstr += '\n'
             return outstr
         subpar = self.subpars.add_parser(

@@ -144,5 +144,29 @@ Take ownership of a file or folder (optional: recursively).
                 </dl>
             </td>
         </tr>
+        <tr>
+            <td align="center">3.0</td>
+            <td>
+                <dl>
+                    <dt>new</dt>
+                    <ul>
+                        <li>createSim updated to PyQt5</li>
+                        <li>ConvertVideo is now a sub-package for readability</li>
+                        <li>Added a lot more options for ConvertVideo</li>
+                        <li>Added a lot more info transparency in ConvertVideo</li>
+                        <li>Added more options for ConvertVideo</li>
+                        <li>Added more editable options for ConvertVideo in config</li>
+                        <li>Added application icon for ConvertVideo</li>
+                    </ul>
+                    <dt>bugfixes</dt>
+                    <ul>
+                        <li>ConvertVideo properly parses audio</li>
+                        <li>ConvertVideo properly parses subtitles</li>
+                        <li>Stopped ConvertVideo from attempting to convert previously converted items</li>
+                        <li>ConvertVideo properly closes after completion</li>
+                    </ul>
+                </dl>
+            </td>
+        </tr>
     </tbody>
 </table>
