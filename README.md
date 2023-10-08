@@ -168,5 +168,21 @@ Take ownership of a file or folder (optional: recursively).
                 </dl>
             </td>
         </tr>
+        <tr>
+            <td align="center">3.1</td>
+            <td>
+                <dl>
+                    <dt>new</dt>
+                    <ul>
+                        <li>Added more info for transparency in ConvertVideo</li>
+                    </ul>
+                    <dt>bugfixes</dt>
+                    <ul>
+                        <li>Fixed error in ConvertVideo dealing with audio channels</li>
+                        <li>Fixed syntax error in AlterImages</li>
+                    </ul>
+                </dl>
+            </td>
+        </tr>
     </tbody>
 </table>

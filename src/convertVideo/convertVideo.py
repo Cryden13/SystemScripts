@@ -36,6 +36,7 @@ class ConvertVideo:
     finct: int
     totct: int
     dSize: int = 0
+    forceCancel: bool = False
 
     def __init__(self, top_path: str):
         """\
@@ -71,12 +72,13 @@ class ConvertVideo:
                               for s in ('', *args, '')])
         # init vars
         t_start = datetime.now()
-        self.results = dict(err=0, fail=0)
+        self.results = dict(err=0, fail=0, skip=0)
         self.finct = 1
         self.totct = len(self.files)
         print(formatTxt(f"PROCESSING {self.totct} ITEM{'' if self.totct == 1 else 'S'}",
                         f"({fpath})",
                         *Opt.getInfo()))
+        sz_in = sum(f.stat().st_size for f in self.topfol.rglob('*.*'))
         # compile data
         progress = QProgressDialog("Building commands, please wait...",
                                    "Cancel",
@@ -108,18 +110,23 @@ class ConvertVideo:
         t_end = datetime.now()
         h, m, s = str(t_end - t_start).split(':')
         t_elapsed = f"{h:0>2}h {m:0>2}m {float(s):05.02f}s"
+        sz_out = sum(f.stat().st_size for f in self.topfol.rglob('*.*'))
+        sz_difp = (1.0 - sz_out / sz_in) * 100
         # cleanup
         msg = (f"Processed {self.totct} item{'' if self.totct == 1 else 's'}:\n"
-               f"  {self.results['fail']} failed\n"
-               f"  {self.results['err']} errors\n"
+               f"  {self.results['fail']} failed compression\n"
+               f"  {self.results['err']} had errors\n"
+               f"  {self.results['skip']} were skipped\n"
                f"Time elapsed: {t_elapsed}\n"
-               f"Result: {self.dSize:.2f}MB {'reduction' if self.dSize < 0 else 'increase'} in size")
+               f"Result: {self.dSize:.2f}MB ({sz_difp:02.2f}%) {'reduction' if self.dSize < 0 else 'increase'} in size")
         Mbox.showinfo(title='Processing Complete',
                       message=msg)
         run(['powershell', 'clear'])
         QApplication.quit()
 
     def process(self, pth_in: Path, info: BuildCmd) -> None:
+        if self.forceCancel:
+            return
         # init vars
         pth_out, cmd, todo = info.pth_out, info.cmd, info.todo
         err = None
@@ -135,7 +142,6 @@ class ConvertVideo:
             namestr = fill(f'INPUT: "{pth_in.name}"')
             if Opt.recurse:
                 ffol = str(pth_in.parent.relative_to(self.topfol))
-                ffol = '.\\' if ffol == '.' else f'.\\{ffol}'
                 folstr = fill(f'DIR: "{ffol}"')
                 return f'{folstr}\n{namestr}'
             else:
@@ -222,6 +228,7 @@ class ConvertVideo:
                 # there was an error or processing took too short of a time
                 if returncode == 3221225786:
                     err = 'User closed the window'
+                    self.forceCancel = True
                 else:
                     chk_cmd = re_sub(f' -y (.+?) "{re_esc(str(pth_out))}"',
                                      r' -v error \1 -f null -',
@@ -241,6 +248,7 @@ class ConvertVideo:
                        f'  subs  -> {getProcesses("S")}')
         else:
             procstr = 'PROCESSES: skipped'
+            self.results['skip'] += 1
         dt_end = datetime.now()
         h, m, s = str(dt_end - dt_start).split(':')
         t_elapsed = f"{h:0>2}h {m:0>2}m {float(s):05.02f}s"

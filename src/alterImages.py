@@ -47,17 +47,18 @@ class AlterImages:
         wgt_usf = InDlg.ChWgt.textbox(hint='Optional override. WxH')
         wgt_tbs = InDlg.ChWgt.checkbox(default=True)
         wgt_rec = InDlg.ChWgt.checkbox()
-        ans = InDlg.multiinput(title="Alter Images",
-                               message=f"Altering image files in\n<{self.dirname}>",
-                               input_fields=[
-                                   ('Convert to', wgt_cnv),
-                                   ('Resize', wgt_rsz),
-                                   ('User resize', wgt_usz),
-                                   ('Fill background', wgt_fbg),
-                                   ('User fill size', wgt_usf),
-                                   ('Trim blackspace', wgt_tbs),
-                                   ('Recurse folders', wgt_rec)
-                               ])
+        ans = InDlg.multiinput(
+            title="Alter Images",
+            message=f"Altering image files in\n<{self.dirname}>",
+            input_fields=[
+                ('Convert to', wgt_cnv),
+                ('Resize', wgt_rsz),
+                ('User resize', wgt_usz),
+                ('Fill background', wgt_fbg),
+                ('User fill size', wgt_usf),
+                ('Trim blackspace', wgt_tbs),
+                ('Recurse folders', wgt_rec)
+            ])
         if not ans:
             return
         # get vars
@@ -99,7 +100,8 @@ class AlterImages:
         recurse = ans['Recurse folders']
         # find files
         func = self.dirname.rglob if recurse else self.dirname.glob
-        regex = f'\(({"|".join([i for i in sizes.values() if i])})\)'
+        ins = "|".join([i for i in sizes.values() if i])
+        regex = r'\(({})\)'.format(ins)
         files = [f'"{f.relative_to(self.dirname)}"' for f in func('*.*')
                  if f.suffix in ALTER_FTYPES
                  and not match(regex, f.name)]

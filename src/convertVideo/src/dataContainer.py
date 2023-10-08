@@ -144,6 +144,10 @@ class DataContainer:
                     else:
                         self.chnls = (
                             int(self.strm_list[int(Opt.aud_strm)].split(',')[1])) * 64
+                else:
+                    # 'all' selected
+                    self.chnls = max(int(x.split(',')[1])
+                                     for x in self.strm_list) * 64
             else:
                 # no audio
                 self.chnls = 128
