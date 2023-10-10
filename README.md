@@ -184,5 +184,23 @@ Take ownership of a file or folder (optional: recursively).
                 </dl>
             </td>
         </tr>
+        <tr>
+            <td align="center">3.2</td>
+            <td>
+                <dl>
+                    <dt>new</dt>
+                    <ul>
+                        <li>Added more info for transparency in ConvertVideo</li>
+                        <li>Added the option to NOT convert streams in ConvertVideo</li>
+                        <li>Added the option to add arguments in ConvertVideo</li>
+                    </ul>
+                    <dt>bugfixes</dt>
+                    <ul>
+                        <li>Fixed error in ConvertVideo that caused sequential files to not be properly processed</li>
+                        <li>Fixed syntax error in ConvertVideo that caused issues with webms</li>
+                    </ul>
+                </dl>
+            </td>
+        </tr>
     </tbody>
 </table>
