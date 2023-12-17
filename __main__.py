@@ -22,7 +22,7 @@ from textwrap import (
 from . import src
 
 
-class main:
+class Main:
     pKwargs = dict(add_help=False,
                    formatter_class=RawTextHelpFormatter)
     hArgs = ['-h', '--help']
@@ -119,4 +119,4 @@ class main:
 
 
 if __name__ == "__main__":
-    main()
+    Main()

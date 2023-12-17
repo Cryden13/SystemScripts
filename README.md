@@ -19,14 +19,6 @@ Resize image files with specified extensions (from config.ini) within this folde
 
 - *workingdir* (str): The path of the directory that contains the images
 
-### `CompressVideo`
-
-Convert and compress video files with specified extensions (from config.ini) within this folder (and optionally its subfolders) to HEVC/AAC or VP9/OPUS.
-
-**Parameters:**
-
-- *top_path* (str): The path to either a directory to be searched or a video file
-
 ### `CreateSym`
 
 Create a new SymLink in a parent directory.
@@ -103,43 +95,11 @@ Take ownership of a file or folder (optional: recursively).
                 <dl>
                     <dt>new</dt>
                     <ul>
-                        <li>combined ConvertVideo and CompressVideo for simplicity</li>
-                        <li>added a bunch of customization to ConvertVideo</li>
                         <li>added a bunch of customization to AlterImages</li>
                     </ul>
                     <dt>bugfixes</dt>
                     <ul>
                         <li>none👍</li>
-                    </ul>
-                </dl>
-            </td>
-        </tr>
-        <tr>
-            <td align="center">2.2</td>
-            <td>
-                <dl>
-                    <dt>new</dt>
-                    <ul>
-                        <li>overhauled ConvertVideo</li>
-                    </ul>
-                    <dt>bugfixes</dt>
-                    <ul>
-                        <li>fixed ConvertVideo errors</li>
-                    </ul>
-                </dl>
-            </td>
-        </tr>
-        <tr>
-            <td align="center">2.3</td>
-            <td>
-                <dl>
-                    <dt>new</dt>
-                    <ul>
-                        <li>ConvertVideo checks for subtitle language</li>
-                    </ul>
-                    <dt>bugfixes</dt>
-                    <ul>
-                        <li>Fixed selecting streams in ConvertVideo not working</li>
                     </ul>
                 </dl>
             </td>
@@ -151,19 +111,10 @@ Take ownership of a file or folder (optional: recursively).
                     <dt>new</dt>
                     <ul>
                         <li>createSim updated to PyQt5</li>
-                        <li>ConvertVideo is now a sub-package for readability</li>
-                        <li>Added a lot more options for ConvertVideo</li>
-                        <li>Added a lot more info transparency in ConvertVideo</li>
-                        <li>Added more options for ConvertVideo</li>
-                        <li>Added more editable options for ConvertVideo in config</li>
-                        <li>Added application icon for ConvertVideo</li>
                     </ul>
                     <dt>bugfixes</dt>
                     <ul>
-                        <li>ConvertVideo properly parses audio</li>
-                        <li>ConvertVideo properly parses subtitles</li>
-                        <li>Stopped ConvertVideo from attempting to convert previously converted items</li>
-                        <li>ConvertVideo properly closes after completion</li>
+                        <li>none</li>
                     </ul>
                 </dl>
             </td>
@@ -172,32 +123,24 @@ Take ownership of a file or folder (optional: recursively).
             <td align="center">3.1</td>
             <td>
                 <dl>
-                    <dt>new</dt>
-                    <ul>
-                        <li>Added more info for transparency in ConvertVideo</li>
-                    </ul>
                     <dt>bugfixes</dt>
                     <ul>
-                        <li>Fixed error in ConvertVideo dealing with audio channels</li>
                         <li>Fixed syntax error in AlterImages</li>
                     </ul>
                 </dl>
             </td>
         </tr>
         <tr>
-            <td align="center">3.2</td>
+            <td align="center">4.0</td>
             <td>
                 <dl>
                     <dt>new</dt>
                     <ul>
-                        <li>Added more info for transparency in ConvertVideo</li>
-                        <li>Added the option to NOT convert streams in ConvertVideo</li>
-                        <li>Added the option to add arguments in ConvertVideo</li>
+                        <li>ConvertVideo removed to its own package</li>
                     </ul>
                     <dt>bugfixes</dt>
                     <ul>
-                        <li>Fixed error in ConvertVideo that caused sequential files to not be properly processed</li>
-                        <li>Fixed syntax error in ConvertVideo that caused issues with webms</li>
+                        <li>Fixed pullSubfiles mis-identifying folders with periods as files</li>
                     </ul>
                 </dl>
             </td>

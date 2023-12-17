@@ -24,7 +24,7 @@ class PullSubfiles:
         maindir = Path(topdir).resolve()
         while not maindir.is_dir():
             maindir = maindir.parent
-        filect = len(tuple(maindir.rglob('*.*')))
+        filect = len(tuple(f for f in maindir.rglob('*') if not f.is_dir()))
         PlaySound("Beep")
         ans = Mbox.askquestion(title="Pull Subfiles",
                                message=f"Pull {filect} subfiles to <{maindir}>?")
@@ -32,7 +32,7 @@ class PullSubfiles:
             return
         subdirs = [d for d in maindir.iterdir() if d.is_dir()]
         for d in subdirs:
-            for file in d.rglob('*.*'):
+            for file in [f for f in d.rglob('*') if not f.is_dir()]:
                 new = maindir.joinpath(file.name)
                 while new.exists():
                     m = search(r' \((\d+)\)$', new.stem)
@@ -40,7 +40,7 @@ class PullSubfiles:
                     nm = sub(r' \(\d+\)$|$', f' ({ct})', new.stem, 1)
                     new = new.with_stem(nm)
                 file.rename(new)
-            for fol in sorted(d.rglob('*'), reverse=True):
+            for fol in sorted([f for f in d.rglob('*') if f.is_dir()], reverse=True):
                 fol.rmdir()
             d.rmdir()
         sleep(0.5)
